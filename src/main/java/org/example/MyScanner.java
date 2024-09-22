@@ -6,6 +6,12 @@ import java.io.PushbackReader;
 import java.util.ArrayList;
 import java.util.Collections;
 
+/**
+ * MyScanner Class
+ * Used to scan lines of code as part of a compiler.
+ *
+ * @author Zachary Ziegler
+ */
 public class MyScanner {
     enum TOKEN {
         SCANEOF, ID, INTLITERAL,
@@ -17,6 +23,10 @@ public class MyScanner {
     private PushbackReader pbr;
     private StringBuilder buffer = new StringBuilder();
 
+    /**
+     * Used to initialize pbr member variable and reservedWords list.
+     * @param pbr
+     */
     public MyScanner(PushbackReader pbr) {
         reservedWords = new ArrayList<>();
         Collections.addAll(reservedWords, "declare", "int", "print", "set", "if",
@@ -24,11 +34,20 @@ public class MyScanner {
         this.pbr = pbr;
     }
 
+    /**
+     * Scans the next input in line of code, returns TOKEN associated with input.
+     * @return
+     * @throws Exception
+     */
     public TOKEN scan() throws Exception {
         try {
             int c;
             c = pbr.read();
             while (c != -1) {
+                // Skip all whitespace (including spaces, tabs, and newlines)
+                while (Character.isWhitespace(c)) {
+                    c = pbr.read();
+                }
                 if (Character.isDigit(c)) {
                     buffer.setLength(0); // Clear the buffer
                     buffer.append((char) c); // Add the first char to buffer
@@ -50,7 +69,7 @@ public class MyScanner {
                     buffer.append((char) c); // Add the first char to buffer
                     c = pbr.read();
                     while (Character.isLetter(c)) {
-                        buffer.append((char)c); // Add char to buffer
+                        buffer.append((char) c); // Add char to buffer
                         c = pbr.read();
                     }
                     pbr.unread(c);
@@ -61,6 +80,16 @@ public class MyScanner {
                         return TOKEN.valueOf(reservedWord); // if scanner reads reserved word that isn't int, return that word
                     } else {
                         return TOKEN.ID;
+                    }
+                } else if (c == '\\') {
+                    // Check for literal `\n`
+                    c = pbr.read();
+                    if (c == 'n') {
+                        c = pbr.read();
+                        continue; // Treat as whitespace and move on
+                    } else {
+                        pbr.unread(c); // Not a valid sequence, unread and treat as normal character
+                        continue;
                     }
                 }
 
@@ -73,6 +102,15 @@ public class MyScanner {
             throw new RuntimeException(e);
         }
         return TOKEN.SCANEOF;
+    }
+
+    /**
+     * returns buffer as a string
+     * @return
+     */
+    public String getTokenBufferString() {
+        String bufferString = buffer.toString();
+        return bufferString;
     }
 }
 

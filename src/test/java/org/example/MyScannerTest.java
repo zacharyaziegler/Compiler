@@ -134,4 +134,56 @@ class MyScannerTest {
             throw new RuntimeException(e);
         }
     }
+
+    @Test
+    void testSix() {
+        try {
+            PushbackReader pbr = new PushbackReader(new FileReader(new File("test6.txt")));
+            MyScanner scanner = new MyScanner(pbr);
+
+            MyScanner.TOKEN token = scanner.scan();
+            assertEquals(MyScanner.TOKEN.IF, token); // test for if
+
+            token = scanner.scan();
+            assertEquals(MyScanner.TOKEN.ID, token); // test for id
+
+            token = scanner.scan();
+            assertEquals(MyScanner.TOKEN.EQUALS, token); // test for equals
+
+            token = scanner.scan();
+            assertEquals(MyScanner.TOKEN.ID, token); // test for id
+
+            token = scanner.scan();
+            assertEquals(MyScanner.TOKEN.THEN, token); // test for then
+
+            token = scanner.scan();
+            assertEquals(MyScanner.TOKEN.PRINT, token); // test for print
+
+            token = scanner.scan();
+            assertEquals(MyScanner.TOKEN.ID, token); // test for id
+
+            token = scanner.scan();
+            assertEquals(MyScanner.TOKEN.ENDIF, token); // test for endif
+
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    void testSeven() {
+        try {
+            PushbackReader pbr = new PushbackReader(new FileReader(new File("test7.txt")));
+            MyScanner scanner = new MyScanner(pbr);
+
+            MyScanner.TOKEN token = scanner.scan();
+            assertEquals(MyScanner.TOKEN.SCANEOF, token); // test for SCANEOF
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
