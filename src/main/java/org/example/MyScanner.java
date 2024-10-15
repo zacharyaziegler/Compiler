@@ -44,64 +44,58 @@ public class MyScanner {
             int c;
             c = pbr.read();
             while (c != -1) {
-                // Skip all whitespace (including spaces, tabs, and newlines)
+                buffer.setLength(0);  // Clear the buffer before reading a new token
+
+                // Skip all whitespace
                 while (Character.isWhitespace(c)) {
                     c = pbr.read();
                 }
+
                 if (Character.isDigit(c)) {
-                    buffer.setLength(0); // Clear the buffer
-                    buffer.append((char) c); // Add the first char to buffer
+                    buffer.append((char) c);
                     c = pbr.read();
                     while (Character.isDigit(c)) {
-                        buffer.append(c); // Add char to buffer
+                        buffer.append((char) c);
                         c = pbr.read();
                     }
                     pbr.unread(c);
-
-
                     return TOKEN.INTLITERAL;
                 } else if (c == '+') {
                     return TOKEN.PLUS;
                 } else if (c == '=') {
                     return TOKEN.EQUALS;
                 } else if (Character.isLetter(c)) {
-                    buffer.setLength(0); // Clear buffer
-                    buffer.append((char) c); // Add the first char to buffer
+                    buffer.append((char) c);
                     c = pbr.read();
                     while (Character.isLetter(c)) {
-                        buffer.append((char) c); // Add char to buffer
+                        buffer.append((char) c);
                         c = pbr.read();
                     }
                     pbr.unread(c);
-                    if (buffer.toString().equals("int")) {
-                        return TOKEN.INTDATATYPE; // returns int data type because scanner read "int"
-                    } else if (reservedWords.contains(buffer.toString().toLowerCase())) {
-                        String reservedWord = buffer.toString().toUpperCase();
-                        return TOKEN.valueOf(reservedWord); // if scanner reads reserved word that isn't int, return that word
+
+                    String word = buffer.toString();
+
+                    // Ensure that "int" is always treated as a data type and not an identifier
+                    if (word.equalsIgnoreCase("int")) {
+                        return TOKEN.INTDATATYPE;  // Correctly handle the "int" type
+                    } else if (reservedWords.contains(word.toLowerCase())) {
+                        return TOKEN.valueOf(word.toUpperCase());  // Reserved keywords
                     } else {
-                        return TOKEN.ID;
-                    }
-                } else if (c == '\\') {
-                    // Check for literal `\n`
-                    c = pbr.read();
-                    if (c == 'n') {
-                        c = pbr.read();
-                        continue; // Treat as whitespace and move on
-                    } else {
-                        pbr.unread(c); // Not a valid sequence, unread and treat as normal character
-                        continue;
+                        return TOKEN.ID;  // Otherwise, it's an identifier
                     }
                 }
 
                 c = pbr.read();
             }
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return TOKEN.SCANEOF; // End of file
+        return TOKEN.SCANEOF;  // End of file
     }
+
+
+
+
 
     /**
      * returns buffer as a string
