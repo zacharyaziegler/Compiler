@@ -93,7 +93,6 @@ public class MyScanner {
                     }
                 }
 
-
                 c = pbr.read();
             }
         } catch (FileNotFoundException e) {
@@ -101,7 +100,7 @@ public class MyScanner {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return TOKEN.SCANEOF;
+        return TOKEN.SCANEOF; // End of file
     }
 
     /**
