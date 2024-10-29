@@ -10,11 +10,12 @@ public class Main {
     public static void main(String[] args) {
 
         MyParser parser = new MyParser();
-
-        String programNoErrors = "declare w int\n" +
-                "declare x int\n" +
-                "declare y int\n" +
-                "declare z int\n" +
+//        String programNoErrors = "declare w\n" +
+//                "declare x\n";
+        String programNoErrors = "declare w\n" +
+                "declare x\n" +
+                "declare y\n" +
+                "declare z\n" +
                 "set w = 5\n" +
                 "set x = 10\n" +
                 "set y = 15\n" +

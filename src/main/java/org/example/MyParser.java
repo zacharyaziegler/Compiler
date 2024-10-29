@@ -24,15 +24,10 @@ public class MyParser {
      */
     public boolean parse(String program) {
         try {
-            // Initialize the scanner
             this.scanner = new MyScanner(new PushbackReader(new java.io.StringReader(program)));
-            // Get the first token
             nextToken = scanner.scan();
-
-            // Begin parsing from the top-level non-terminal <Program>
             boolean result = parseProgram();
 
-            // Ensure the last token is the end-of-file symbol $
             if (result && nextToken == MyScanner.TOKEN.SCANEOF) {
                 System.out.println("Parse Successful");
                 return true;
@@ -48,22 +43,13 @@ public class MyParser {
 
     /**
      * Parses the <Program> non-terminal, which consists of <Decls> and <Stmts>.
-     *
-     * @return true if both <Decls> and <Stmts> are parsed successfully.
-     * @throws Exception if an error occurs during parsing.
      */
     boolean parseProgram() throws Exception {
-        if (parseDecls() && parseStmts()) {
-            return true;
-        }
-        return false;
+        return parseDecls() && parseStmts();
     }
 
     /**
-     * Parses the <Decls> non-terminal, which represents a series of declarations.
-     *
-     * @return true if <Decls> is successfully parsed, false if there's an error.
-     * @throws Exception if an error occurs during parsing.
+     * Parses the <Decls> non-terminal.
      */
     boolean parseDecls() throws Exception {
         while (nextToken == MyScanner.TOKEN.DECLARE) {
@@ -71,29 +57,24 @@ public class MyParser {
                 return false;
             }
         }
-        return true; // Allow epsilon
+        return true;
     }
 
     /**
-     * Parses a single <Decl> non-terminal: "declare id int".
-     *
-     * @return true if the declaration is successfully parsed.
-     * @throws Exception if an error occurs or a duplicate declaration is found.
+     * Parses a single <Decl>: "declare id".
      */
     boolean parseDecl() throws Exception {
+        // Match the 'declare' keyword
         if (match(MyScanner.TOKEN.DECLARE)) {
-            if (nextToken == MyScanner.TOKEN.ID) { // Match the ID
-                String id = scanner.getTokenBufferString();  // Capture ID
-                match(MyScanner.TOKEN.ID);  // Move to next token
 
-//                System.out.println("Captured ID: " + id);  // Debugging info
+            // Now match the ID token, but capture the buffer before advancing to the next token
+            String id = scanner.getTokenBufferString();  // Capture the ID before calling match()
 
-                if (!lookupMap.containsKey(id)) { // Check if the identifier is already in the symbol table
-                    if (match(MyScanner.TOKEN.INTDATATYPE)) { // match INTDATATYPE
-//                        System.out.println("Adding '" + id + "' to symbol table with type INTDATATYPE"); // Debugging info
-                        lookupMap.put(id, new SymbolTableItem(id, TYPE.INTDATATYPE));
-                        return true;
-                    }
+            if (match(MyScanner.TOKEN.ID)) {  // Now advance to the next token
+                // Check if the identifier has already been declared
+                if (!lookupMap.containsKey(id)) {
+                    lookupMap.put(id, new SymbolTableItem(id, TYPE.INTDATATYPE));  // Add ID to symbol table
+                    return true;
                 } else {
                     System.out.println("Parse Error: Variable '" + id + "' already declared.");
                     throw new Exception("Duplicate declaration");
@@ -102,6 +83,7 @@ public class MyParser {
         }
         return false;
     }
+
 
     /**
      * Parses the <Stmts> non-terminal, which represents a series of statements.
@@ -279,14 +261,11 @@ public class MyParser {
             System.out.println("Matched: " + expectedToken + " (" + scanner.getTokenBufferString() + ")");
             nextToken = scanner.scan();
             return true;
-        } else { // Error message
-            System.out.println("Parse Error");
-            System.out.println("Received: " + nextToken + " Buffer " + scanner.getTokenBufferString());
-            System.out.println("Expected: " + expectedToken);
+        } else {
+            System.out.println("Parse Error: Expected " + expectedToken + " but got " + nextToken);
             throw new Exception("Unexpected token");
         }
     }
-
 
 
 }
