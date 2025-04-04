@@ -11,9 +11,10 @@ import java.util.Map;
  */
 public class MyParser {
     enum TYPE {INTDATATYPE}
-    Map<String, SymbolTableItem> lookupMap = new HashMap<>();
+    Map<String, SymbolTableItem> lookupMap = new HashMap<>();  // Symbol table to track declared variables
     MyScanner scanner;
     MyScanner.TOKEN nextToken;
+    private AbstractSyntaxTree abstractSyntaxTree;
 
     /**
      * Entry point for parsing the program.
@@ -24,11 +25,15 @@ public class MyParser {
      */
     public boolean parse(String program) {
         try {
+            // Initialize the AST and scanner
+            abstractSyntaxTree = new AbstractSyntaxTree();
             this.scanner = new MyScanner(new PushbackReader(new java.io.StringReader(program)));
-            nextToken = scanner.scan();
-            boolean result = parseProgram();
+            nextToken = scanner.scan();  // Get the first token
+            AbstractSyntaxTree.NodeProgram root = parseProgram();  // Parse the entire program
 
-            if (result && nextToken == MyScanner.TOKEN.SCANEOF) {
+            // If program is successfully parsed and we reached the end of the file
+            if (root != null && nextToken == MyScanner.TOKEN.SCANEOF) {
+                abstractSyntaxTree.setRoot(root);  // Set the root of the AST
                 System.out.println("Parse Successful");
                 return true;
             } else {
@@ -42,72 +47,83 @@ public class MyParser {
     }
 
     /**
+     * Getter for the AbstractSyntaxTree
+     * @return abstractSyntaxTree
+     */
+    public AbstractSyntaxTree getAbstractSyntaxTree() {
+        return abstractSyntaxTree;
+    }
+
+    /**
      * Parses the <Program> non-terminal, which consists of <Decls> and <Stmts>.
      */
-    boolean parseProgram() throws Exception {
-        return parseDecls() && parseStmts();
+    AbstractSyntaxTree.NodeProgram parseProgram() throws Exception {
+        AbstractSyntaxTree.NodeDecls decls = parseDecls();
+        AbstractSyntaxTree.NodeStmts stmts = parseStmts();
+        if (decls != null && stmts != null) {
+            return abstractSyntaxTree.new NodeProgram(decls, stmts);  // Return the root NodeProgram
+        }
+        return null;
     }
 
     /**
      * Parses the <Decls> non-terminal.
      */
-    boolean parseDecls() throws Exception {
-        while (nextToken == MyScanner.TOKEN.DECLARE) {
-            if (!parseDecl()) {
-                return false;
+    AbstractSyntaxTree.NodeDecls parseDecls() throws Exception {
+        AbstractSyntaxTree.NodeDecls nodeDecls = abstractSyntaxTree.new NodeDecls();
+        while (nextToken == MyScanner.TOKEN.DECLARE) {  // While we have declarations
+            AbstractSyntaxTree.NodeId id = parseDecl();  // Parse each declaration
+            if (id != null) {
+                nodeDecls.addDecl(id);  // Add declaration to the node
+            } else {
+                return null;
             }
         }
-        return true;
+        return nodeDecls;  // Return the NodeDecls
     }
 
     /**
      * Parses a single <Decl>: "declare id".
      */
-    boolean parseDecl() throws Exception {
-        // Match the 'declare' keyword
+    AbstractSyntaxTree.NodeId parseDecl() throws Exception {
         if (match(MyScanner.TOKEN.DECLARE)) {
-
-            // Now match the ID token, but capture the buffer before advancing to the next token
-            String id = scanner.getTokenBufferString();  // Capture the ID before calling match()
-
-            if (match(MyScanner.TOKEN.ID)) {  // Now advance to the next token
-                // Check if the identifier has already been declared
-                if (!lookupMap.containsKey(id)) {
-                    lookupMap.put(id, new SymbolTableItem(id, TYPE.INTDATATYPE));  // Add ID to symbol table
-                    return true;
+            String id = scanner.getTokenBufferString();  // Capture the variable name
+            if (match(MyScanner.TOKEN.ID)) {  // Now match the ID
+                if (!lookupMap.containsKey(id)) {  // Check if variable was already declared
+                    lookupMap.put(id, new SymbolTableItem(id, TYPE.INTDATATYPE));  // Add variable to symbol table
+                    return abstractSyntaxTree.new NodeId(id);
                 } else {
                     System.out.println("Parse Error: Variable '" + id + "' already declared.");
                     throw new Exception("Duplicate declaration");
                 }
             }
         }
-        return false;
+        return null;
     }
-
 
     /**
      * Parses the <Stmts> non-terminal, which represents a series of statements.
      *
-     * @return true if <Stmts> is successfully parsed.
-     * @throws Exception if an error occurs during parsing.
      */
-    boolean parseStmts() throws Exception {
+    AbstractSyntaxTree.NodeStmts parseStmts() throws Exception {
+        AbstractSyntaxTree.NodeStmts nodeStmts = abstractSyntaxTree.new NodeStmts();
+        // Parse statements as long as the next token is a statement starter
         while (nextToken == MyScanner.TOKEN.PRINT || nextToken == MyScanner.TOKEN.SET ||
                 nextToken == MyScanner.TOKEN.IF || nextToken == MyScanner.TOKEN.CALC) {
-            if (!parseStmt()) {
-                return false;
+            AbstractSyntaxTree.NodeStmt stmt = parseStmt();  // Parse individual statement
+            if (stmt != null) {
+                nodeStmts.addStmt(stmt);  // Add statement to the node
+            } else {
+                return null;
             }
         }
-        return true; // Allow epsilon
+        return nodeStmts;  // Return the NodeStmts
     }
 
     /**
      * Parses a single <Stmt> non-terminal, which could be a print, set, if, or calc statement.
-     *
-     * @return true if a valid statement is successfully parsed.
-     * @throws Exception if an error occurs during parsing.
      */
-    boolean parseStmt() throws Exception {
+    AbstractSyntaxTree.NodeStmt parseStmt() throws Exception {
         if (nextToken == MyScanner.TOKEN.PRINT) {
             return parsePrintStmt();
         } else if (nextToken == MyScanner.TOKEN.SET) {
@@ -117,125 +133,120 @@ public class MyParser {
         } else if (nextToken == MyScanner.TOKEN.CALC) {
             return parseCalcStmt();
         }
-        return false;
+        return null;
     }
 
     /**
      * Parses a print statement: "print id".
-     *
-     * @return true if the print statement is successfully parsed.
-     * @throws Exception if an error occurs during parsing.
      */
-    boolean parsePrintStmt() throws Exception {
-        if (match(MyScanner.TOKEN.PRINT)) {
-            if (match(MyScanner.TOKEN.ID)) {
-                return true;
-            }
+    AbstractSyntaxTree.NodePrint parsePrintStmt() throws Exception {
+        if (match(MyScanner.TOKEN.PRINT)) {  // Match "print" keyword
+            AbstractSyntaxTree.NodeId id = parseId();  // Parse the ID to print
+            return abstractSyntaxTree.new NodePrint(id);  // Return NodePrint
         }
-        return false;
+        return null;
     }
 
     /**
      * Parses a set statement: "set id = intliteral".
-     *
-     * @return true if the set statement is successfully parsed.
-     * @throws Exception if an error occurs during parsing.
      */
-    boolean parseSetStmt() throws Exception {
+    AbstractSyntaxTree.NodeSet parseSetStmt() throws Exception {
         if (match(MyScanner.TOKEN.SET)) {
-            if (match(MyScanner.TOKEN.ID)) {
-                if (match(MyScanner.TOKEN.EQUALS)) {
-                    if (match(MyScanner.TOKEN.INTLITERAL)) {
-                        return true;
-                    }
-                }
+            AbstractSyntaxTree.NodeId id = parseId();  // Parse the ID
+            if (match(MyScanner.TOKEN.EQUALS)) {
+                AbstractSyntaxTree.NodeIntLiteral literal = parseIntLiteral();  // Parse the integer literal
+                return abstractSyntaxTree.new NodeSet(id, literal);  // Return NodeSet
             }
         }
-        return false;
+        return null;
     }
 
     /**
      * Parses an if statement: "if id = id then <Stmts> endif".
-     *
-     * @return true if the if statement is successfully parsed.
-     * @throws Exception if an error occurs during parsing.
      */
-    boolean parseIfStmt() throws Exception {
+    AbstractSyntaxTree.NodeIf parseIfStmt() throws Exception {
         if (match(MyScanner.TOKEN.IF)) {
-            if (match(MyScanner.TOKEN.ID)) {
-                if (match(MyScanner.TOKEN.EQUALS)) {
-                    if (match(MyScanner.TOKEN.ID)) {
-                        if (match(MyScanner.TOKEN.THEN)) {
-                            if (parseStmts()) {
-                                return match(MyScanner.TOKEN.ENDIF);
-                            }
-                        }
+            AbstractSyntaxTree.NodeId left = parseId();  // Parse the left-hand side ID
+            if (match(MyScanner.TOKEN.EQUALS)) {
+                AbstractSyntaxTree.NodeId right = parseId();  // Parse the right-hand side ID
+                if (match(MyScanner.TOKEN.THEN)) {
+                    AbstractSyntaxTree.NodeStmts stmts = parseStmts();  // Parse statements inside the if block
+                    if (stmts != null && match(MyScanner.TOKEN.ENDIF)) {
+                        return abstractSyntaxTree.new NodeIf(left, right, stmts);  // Return NodeIf
                     }
                 }
             }
         }
-        return false;
+        return null;
     }
 
     /**
      * Parses a calc statement: "calc id = <Sum>".
-     *
-     * @return true if the calc statement is successfully parsed.
-     * @throws Exception if an error occurs during parsing.
      */
-    boolean parseCalcStmt() throws Exception {
+    AbstractSyntaxTree.NodeCalc parseCalcStmt() throws Exception {
         if (match(MyScanner.TOKEN.CALC)) {
-            if (match(MyScanner.TOKEN.ID)) {
-                if (match(MyScanner.TOKEN.EQUALS)) {
-                    return parseSum();
-                }
+            AbstractSyntaxTree.NodeId id = parseId();  // Parse the ID
+            if (match(MyScanner.TOKEN.EQUALS)) {
+                AbstractSyntaxTree.NodeExpr expr = parseSum();  // Parse the sum expression
+                return abstractSyntaxTree.new NodeCalc(id, expr);  // Return NodeCalc
             }
         }
-        return false;
+        return null;
     }
 
     /**
      * Parses a sum expression: <Value> <SumEnd>.
-     *
-     * @return true if the sum is successfully parsed.
-     * @throws Exception if an error occurs during parsing.
      */
-    boolean parseSum() throws Exception {
-        if (parseValue()) {
-            return parseSumEnd();
-        }
-        return false;
+    AbstractSyntaxTree.NodeExpr parseSum() throws Exception {
+        AbstractSyntaxTree.NodeExpr lhs = parseValue();  // Parse the left-hand side value
+        AbstractSyntaxTree.NodeExpr rhs = parseSumEnd(lhs);  // Continue parsing the sum
+        return rhs;  // Return the final expression
     }
 
     /**
      * Parses the rest of the sum expression: "+ <Value> <SumEnd>" or epsilon.
-     *
-     * @return true if the sum end is successfully parsed.
-     * @throws Exception if an error occurs during parsing.
      */
-    boolean parseSumEnd() throws Exception {
+    AbstractSyntaxTree.NodeExpr parseSumEnd(AbstractSyntaxTree.NodeExpr lhs) throws Exception {
         if (nextToken == MyScanner.TOKEN.PLUS) {
             match(MyScanner.TOKEN.PLUS);
-            if (parseValue()) {
-                return parseSumEnd();
-            }
-            return false;
+            AbstractSyntaxTree.NodeExpr rhs = parseValue();  // Parse the right-hand side value
+            return abstractSyntaxTree.new NodePlus(lhs, parseSumEnd(rhs));  // Return NodePlus
         }
-        return true; // Allow epsilon
+        return lhs;  // Return the expression if no further sum
     }
 
     /**
      * Parses a value, which can be either an ID or an integer literal.
-     *
-     * @return true if the value is successfully parsed.
-     * @throws Exception if an error occurs during parsing.
      */
-    boolean parseValue() throws Exception {
-        if (nextToken == MyScanner.TOKEN.ID || nextToken == MyScanner.TOKEN.INTLITERAL) {
-            match(nextToken);
-            return true;
+    AbstractSyntaxTree.NodeExpr parseValue() throws Exception {
+        if (nextToken == MyScanner.TOKEN.ID) {
+            return parseId();  // Parse an identifier
+        } else if (nextToken == MyScanner.TOKEN.INTLITERAL) {
+            return parseIntLiteral();  // Parse an int literal
         }
-        return false;
+        return null;
+    }
+
+    /**
+     * Parses an ID.
+     */
+    AbstractSyntaxTree.NodeId parseId() throws Exception {
+        String id = scanner.getTokenBufferString();  // Capture the identifier
+        if (match(MyScanner.TOKEN.ID)) {
+            return abstractSyntaxTree.new NodeId(id);  // Return NodeId
+        }
+        return null;
+    }
+
+    /**
+     * Parses an integer literal.
+     */
+    AbstractSyntaxTree.NodeIntLiteral parseIntLiteral() throws Exception {
+        String intLiteral = scanner.getTokenBufferString();  // Capture the int literal
+        if (match(MyScanner.TOKEN.INTLITERAL)) {
+            return abstractSyntaxTree.new NodeIntLiteral(Integer.parseInt(intLiteral));  // Return NodeIntLiteral
+        }
+        return null;
     }
 
     /**
@@ -257,15 +268,13 @@ public class MyParser {
      * @throws Exception if a parse error occurs.
      */
     boolean match(MyScanner.TOKEN expectedToken) throws Exception {
-        if (nextToken == expectedToken) {
+        if (nextToken == expectedToken) {  // Check if the token matches
             System.out.println("Matched: " + expectedToken + " (" + scanner.getTokenBufferString() + ")");
-            nextToken = scanner.scan();
+            nextToken = scanner.scan();  // Get the next token
             return true;
         } else {
             System.out.println("Parse Error: Expected " + expectedToken + " but got " + nextToken);
             throw new Exception("Unexpected token");
         }
     }
-
-
 }

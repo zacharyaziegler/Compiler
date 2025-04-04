@@ -1,0 +1,11 @@
+declare w
+declare x
+declare y
+declare z
+declare a
+set w = 5
+set x = 1
+set y = 2
+set z = 3
+calc a = x + y + z + x + x + 10 + 20
+print a

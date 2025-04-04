@@ -1,0 +1,7 @@
+declare x
+declare y
+declare z
+set x = 10
+set y = 15
+calc z = x + y
+print z

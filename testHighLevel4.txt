@@ -1,0 +1,8 @@
+declare x
+declare y
+set x = 10
+set y = 10
+if x = y then
+print x
+print y
+endif
