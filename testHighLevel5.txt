@@ -1,0 +1,11 @@
+declare a
+declare b
+declare c
+set a = 5
+set b = 10
+set c = 15
+if a = b then
+print a
+print b
+endif
+print c

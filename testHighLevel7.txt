@@ -1,0 +1,17 @@
+declare x
+declare y
+declare z
+declare a
+declare b
+set x = 10
+set y = 10
+set z = 5
+set a = 1
+set b = 2
+if x = y then
+print a
+if y = x then
+print b
+endif
+endif
+
