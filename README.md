@@ -15,7 +15,7 @@ This project relies on the custom library PseudoAssemblyObf.jar, which was provi
 - **Compilation & Execution:**  
   The generated pseudo assembly is passed to a custom library (`PseudoAssemblyObf.jar`) that parses the pseudo assembly, produces Java bytecode, and executes the program.
 
-## Pseudo Assembly Language (Integer Subset)
+## Pseudo Assembly Language
 
 The pseudo assembly language used in this project has two main sections: `.data` for declarations and `.code` for executable instructions. Below is a concise overview of the supported instructions (integers only):
 
